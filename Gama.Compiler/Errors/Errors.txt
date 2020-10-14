@@ -1,0 +1,43 @@
+# This script automatically generates errors
+Output		Errors.cs
+Type		Single
+Namespace	Gama.Compiler
+
+# Include these in every output file
+Includes	System Gama.Error Antlr4.Runtime
+Context		ParserRuleContext
+
+0000 TypeNotFound				"Type {0} is not found, are you missing a reference?"
+0001 IdentifierNotFound			"Identifier {0} is not found in current context, are you missing a reference?"
+0002 DuplicateVariable			"Variable name {0} is already defined in this context."
+0003 DuplicateFunction			"Function {0} is already defined with same parameters in current context."
+0004 DuplicateParameter			"Parameters {0} is defined more than once."
+0005 FunctionNeedsReturn		"Function {0} does not return a value in all paths."
+0006 VoidReturnsValue			"Cannot return value from function {0}, it's return type is void."
+0007 TypeMismatch				"Cannot assign/return type {0}, [formatter.2] expected."
+0008 DuplicateIdentity			"Function identifier {0} is used twice in same namespace."
+0009 DuplicateType				"Type {0} is defined twice in current context."
+0010 VariableVoid				"Unable to define a variable with void type: {0}."
+0011 NonPointerLoad				"Unable to load non-pointer value: {0}."
+0012 NonFunctionCall			"Unable to call non-function expression: {0}."
+0013 DuplicateAttributeUsage	"Attribute {0} is used twice for same type."
+0014 WrongAttributeUsage		"Attribute {0} is wrong, [rule] expected."
+0015 UnknownAttribute			"Unknown attribute: {0}."
+0016 NoViableOverride			"No viable override for {0} that takes given arguments."
+0017 AmbiguousCall				"Ambiguous function call: {0}."
+0018 DuplicateField				"Field name {0} is used twice in same struct definition."
+0019 EmptyStruct				"Unable to define empty struct '{0}', use empty type instead."
+0020 DuplicateMethod			"Method {0} is already defined for [formatter.2]"
+0021 NoViableOperator			"No valid operator found for operation: {0}"
+0022 AssignToNonModLValue		"Attempt to assign value to a non modifiable l-value: {0}"
+
+# Internal errors
+0500 InternalExpressionNull		"Compiler internal error: Expression is null: {0}"
+0599 InternalUnknownError		"Compiler internal error: Unknown fatal error: {0}"
+
+# 0600 ImportFileNotFound			"Imported file '{0}' is not found."
+
+# Code to be included in every error
+Code
+# Everything except # comments are included in output file(s)
+// Auto-generated stub code using error2src.py file

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND '$(PackAsTool)' != 'true'">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LLVMSharp" Version="10.0.0-beta" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Gama.Antlr\Gama.Antlr.csproj" />
+    <ProjectReference Include="..\Gama.Error\Gama.Error.csproj" />
+    <ProjectReference Include="..\Gama.Interop\Gama.Interop.csproj" />
+    <ProjectReference Include="..\Gama.Types\Gama.Types.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Optimizers\Control Flow\" />
+  </ItemGroup>
+
+</Project>
