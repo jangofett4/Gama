@@ -165,9 +165,37 @@ namespace Gama.Compiler
 			// Auto-generated stub code using error2src.py file
 		}
 	}
+	public class ErrorUsingNamespaceNotFound : GamaError
+	{
+		public ErrorUsingNamespaceNotFound(ParserRuleContext ctx) : base("Using namespace error: given namespace chain is not found: {0}", ctx, ctx.GetText())
+		{
+			// Auto-generated stub code using error2src.py file
+		}
+	}
+	public class ErrorFunctionIndexing : GamaError
+	{
+		public ErrorFunctionIndexing(ParserRuleContext ctx) : base("Attempt to index a function: {0}", ctx, ctx.GetText())
+		{
+			// Auto-generated stub code using error2src.py file
+		}
+	}
+	public class ErrorMemberNotFound : GamaError
+	{
+		public ErrorMemberNotFound(ParserRuleContext ctx) : base("Expression cannot be solved: member not found for [type]: {0}", ctx, ctx.GetText())
+		{
+			// Auto-generated stub code using error2src.py file
+		}
+	}
 	public class ErrorInternalExpressionNull : GamaError
 	{
 		public ErrorInternalExpressionNull(ParserRuleContext ctx) : base("Compiler internal error: Expression is null: {0}", ctx, ctx.GetText())
+		{
+			// Auto-generated stub code using error2src.py file
+		}
+	}
+	public class ErrorInternalObjectRefMethodReq : GamaError
+	{
+		public ErrorInternalObjectRefMethodReq(ParserRuleContext ctx) : base("Compiler internal error: Compiler did not provide refernce for method call: {0}", ctx, ctx.GetText())
 		{
 			// Auto-generated stub code using error2src.py file
 		}

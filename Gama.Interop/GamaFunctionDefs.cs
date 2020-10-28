@@ -194,12 +194,15 @@ namespace Gama.Interop
         public GamaTypeRef ReturnType { get; set; }
         public GamaParamList Parameters { get; set; }
 
-        public GamaFunctionRef(GamaTypeRef ret, GamaParamList parms, GamaTypeRef ty, LLVMValueRef val) : base(ty, val, true)
+        public bool IsMethod { get; set; }
+
+        public GamaFunctionRef(GamaTypeRef ret, GamaParamList parms, GamaTypeRef ty, LLVMValueRef val, bool ismethod) : base(ty, val, true)
         {
             Blocks = new List<ObjectGroup<GamaBlockRef>>();
             ReturnType = ret;
             Parameters = parms;
             Attributes = new GamaAttributeSet();
+            IsMethod = ismethod;
         }
 
         public GamaBlockRef AddBlock(string name)

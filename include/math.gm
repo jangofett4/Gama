@@ -1,0 +1,29 @@
+/* trigonometric definitions */
+namespace std {
+	extern sin(f64) : f64;
+	extern cos(f64) : f64;
+	extern tan(f64) : f64;
+
+	extern atan(f64) : f64;
+}
+
+/* spatial math definitions */
+namespace std::math::spatial {
+    struct vector2f {
+        x: f32,
+        y: f32
+    }
+
+    struct vector3f {
+        x: f32,
+        y: f32,
+        z: f32
+    }
+
+    impl vector3f {
+    	add(r: i32) : i32 {
+    		let test = *this;
+    		return 0;
+    	}
+    }
+}

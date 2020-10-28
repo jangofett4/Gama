@@ -42,10 +42,15 @@ namespace Gama.Compiler.Units
         public bool IsEmptyTT => TargetTypeStack.Count == 0;
 
         /* Call stack manipulators  */
+        // This system will be the end of me, because even if there is no calls; expressions will push function lists to stack
+        // This will eventually make the stack overflow, I can't really stop it from happening, compiler will complain about null expression but nothing can be done.
+        // TODO: think about a new call system, maybe inherit FunctionList from Value so that it can be passed around expression compiler easily? (yes)
         public void PushCall(GamaFunctionList list) => CallStack.Push(list);
         public GamaFunctionList PopCall() => CallStack.Pop();
         public GamaFunctionList TopCall() => CallStack.Peek();
         public bool IsEmptyCall => CallStack.Count == 0;
+
+        public GamaValueRef Reference { get; set; }
 
         /* Used for debugging */
         public override GamaValueRef Visit(IParseTree tree)
@@ -65,7 +70,7 @@ namespace Gama.Compiler.Units
 
         public override GamaValueRef VisitExprLiteralFloating([NotNull] GamaParser.ExprLiteralFloatingContext context)
         {
-            return new GamaValueRef(InstanceTypes.F32, LLVMValueRef.CreateConstReal(InstanceTypes.F32.UnderlyingType, double.Parse(context.FloatingLiteral().GetText().Replace('.', ','))), false);
+            return new GamaValueRef(InstanceTypes.F32, LLVMValueRef.CreateConstReal(InstanceTypes.F32.UnderlyingType, float.Parse(context.FloatingLiteral().GetText().Replace('.', ','))), false);
         }
 
         public override GamaValueRef VisitExprLiteralBoolean([NotNull] GamaParser.ExprLiteralBooleanContext context)
@@ -92,7 +97,7 @@ namespace Gama.Compiler.Units
             {
                 glbl = LLVM.BuildGlobalStringPtr(builder, str.GetSbytePtr(), "gep".GetSbytePtr());
             }
-            
+
             return new GamaValueRef(new GamaPointer(InstanceTypes.Char), glbl, false);
         }
 
@@ -108,10 +113,10 @@ namespace Gama.Compiler.Units
                     // If no target type is given
                     //if (IsEmptyTT)
                     //{
-                        var list = Parent.NamespaceContext.FindFunctionRefGlobal(names);
-                        if (list != null)
-                            PushCall(list);
-                        return null;
+                    var list = Parent.NamespaceContext.FindFunctionRefGlobal(names);
+                    if (list != null)
+                        PushCall(list);
+                    return null;
                     //}
                     /*
                     var target = TopTT;
@@ -234,6 +239,62 @@ namespace Gama.Compiler.Units
             }
         }
 
+        public override GamaValueRef VisitExprFQMB([NotNull] GamaParser.ExprFQMBContext context)
+        {
+            PushLoad(false);
+            var lexpr = Visit(context.expr());
+            PopLoad();
+            if (lexpr == null)
+                return null;
+
+            var block = Parent.CurrentBlock;
+            var builder = Parent.Builder;
+            block.PositionBuilderAtEnd(builder);
+
+            var syms = context.Symbol().Select(s => s.GetText()).ToArray();
+            Reference = lexpr; // for single fqmb (eg: foo.bar(...))
+
+            for (int i = 0; i < syms.Length; i++)
+            {
+                var fieldref = lexpr.Type.Meta.GetField(syms[i]);
+                if (fieldref == null)
+                {
+                    var method = lexpr.Type.Meta.GetMethod(syms[i]);
+                    if (method != null)
+                    {
+                        if (i != syms.Length - 1)
+                        {
+                            Parent.NamespaceContext.Context.AddError(new ErrorFunctionIndexing(context));
+                            return null;
+                        }
+                        PushCall(method);
+                        return null;
+                    }
+
+                    Parent.NamespaceContext.Context.AddError(new ErrorMemberNotFound(context));
+                    return null;
+                }
+                /* LLVM */
+                var gep = builder.BuildStructGEP(lexpr.Value, (uint)fieldref.Index);
+                lexpr = new GamaValueRef(fieldref.Type, gep, true); // TODO: check editability
+
+                Reference = lexpr;
+            }
+
+            if (!IsEmptyLoad)
+                if (!TopLoad)
+                    return lexpr; // dont load it, for assign probably
+
+            if (lexpr == null) // TODO: check this, this should not happen, in loop lexpr is ALWAYS assigned to a new value
+            {
+                Console.WriteLine(">>> It happened: {0}", Environment.StackTrace);
+                return null;
+            }
+
+            var load = builder.BuildLoad(lexpr.Value);
+            return new GamaValueRef(lexpr.Type, load, false);
+        }
+
         public override GamaValueRef VisitExprAddressOf([NotNull] GamaParser.ExprAddressOfContext context)
         {
             /* Trick to getting the address of a value is to disable variable loading   */
@@ -269,7 +330,7 @@ namespace Gama.Compiler.Units
 
             if (!IsEmptyCall)
             {
-                var list = TopCall();
+                var list = PopCall();
                 var resolver = new GamaFunctionResolver(list);
 
                 var argslist = context.exprList();
@@ -284,7 +345,7 @@ namespace Gama.Compiler.Units
                         if (val == null)
                         {
                             if (!IsEmptyCall)
-                                resolver.Resolve(i, TopCall());
+                                resolver.Resolve(i, PopCall());
                             else
                                 return null;
                         }
@@ -305,7 +366,14 @@ namespace Gama.Compiler.Units
                     Parent.NamespaceContext.Context.AddError(new ErrorAmbiguousCall(context));
                     return null;
                 }
-                
+
+                if (resolved.IsMethod)
+                    if (Reference == null) // Compiler forgot the provide object reference to method call, check FQMB expression if this happens
+                    {
+                        Parent.NamespaceContext.Context.AddError(new ErrorInternalObjectRefMethodReq(context));
+                        return null;
+                    }
+
                 if (resolved.HasAttribute("obsolete"))
                     Console.WriteLine("Function '{0}' is marked as obsolete, this method should be avoided", context.expr().GetText());
 
@@ -316,12 +384,31 @@ namespace Gama.Compiler.Units
                     return null;
                 }
 
+                if (resolved.IsMethod)
+                    args.Item2[0] = Reference;
+
                 var argsnative = args.Item2.Select(a => a.Value).ToArray();
+                var fnty = resolved.Type as GamaFunction;
 
                 /* LLVM */
                 var block = Parent.CurrentBlock;
                 var builder = Parent.Builder;
                 block.PositionBuilderAtEnd(builder);
+
+                if (fnty.IsVarArg)
+                {
+                    for (int i = resolved.Parameters.Count; i < argsnative.Length; i++)
+                    {
+                        var arg = argsnative[i];
+                        // C11 n1570 6.5.2.2.6; varargs promote floats to doubles
+                        if (args.Item2[i].Type == InstanceTypes.F32) // promotion needed
+                        {
+                            var trunc = builder.BuildFPExt(argsnative[i], InstanceTypes.F64.UnderlyingType);
+                            argsnative[i] = trunc;
+                        }
+                    }
+                }
+
                 var result = builder.BuildCall(resolved.Value, argsnative);
 
                 return new GamaValueRef(resolved.ReturnType, result, false);
@@ -331,14 +418,16 @@ namespace Gama.Compiler.Units
                 if (fn == null)
                     return null;
 
+                var fnref = fn as GamaFunctionRef;
                 if (!(fn.Type is GamaFunction fnty))
                 {
                     Parent.NamespaceContext.Context.AddError(new ErrorNonFunctionCall(context.expr()));
                     return null;
                 }
 
+                var start = fnref.IsMethod ? 1 : 0;
                 var argslist = context.exprList();
-                var argsnative = new LLVMValueRef[0];
+                var argsnative = new LLVMValueRef[0 + start];
 
                 if (argslist != null)
                 {
@@ -349,12 +438,12 @@ namespace Gama.Compiler.Units
                         return null;
                     }
 
-                    argsnative = new LLVMValueRef[exprs.Length];
+                    argsnative = new LLVMValueRef[exprs.Length + start];
 
-                    for (int i = 0; i < exprs.Length; i++)
+                    for (int i = start; i < exprs.Length; i++)
                     {
                         PushTT(fnty.ParameterTypes[i]);
-                        var val = Visit(exprs[i]);
+                        var val = Visit(exprs[i - start]);
                         PopTT();
                         if (val == null)
                             return null;
@@ -362,10 +451,21 @@ namespace Gama.Compiler.Units
                     }
                 }
                 else if (fnty.ParameterTypes.Length != 0)
+                {
+                    Parent.NamespaceContext.Context.AddError(new ErrorNoViableOverride(context));
+                    return null;
+                }
+
+                if (fnref.IsMethod)
+                {
+                    if (Reference == null)
                     {
-                        Parent.NamespaceContext.Context.AddError(new ErrorNoViableOverride(context));
+                        Parent.NamespaceContext.Context.AddError(new ErrorInternalObjectRefMethodReq(context));
                         return null;
                     }
+                }
+                else
+                    argsnative[0] = Reference.Value;
 
                 /* LLVM */
                 var block = Parent.CurrentBlock;

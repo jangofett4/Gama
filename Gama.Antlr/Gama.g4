@@ -17,7 +17,7 @@ namespace
     ;
     
 topLevelStatement
-    : topLevelUsingNamespace
+    : topLevelUsingNamespace SC
 	| topLevelDelegate SC
 	| topLevelExternDef	SC
     | topLevelFuncDef
@@ -207,6 +207,8 @@ Impl        : 'impl';
 True		: 'true';
 False		: 'false';
 Import      : 'import';
+StackAlloc  : 'stackalloc';
+New         : 'new';
 
 If      : 'if';
 Else    : 'else';

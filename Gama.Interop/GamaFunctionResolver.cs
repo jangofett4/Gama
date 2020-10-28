@@ -1,4 +1,7 @@
 ﻿using Gama.Types;
+
+using LLVMSharp.Interop;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,6 +41,7 @@ namespace Gama.Interop
 
             Remaining.RemoveAll((fnref) =>
             {
+                if (fnref.IsMethod) index++; // skip first for object reference
                 var ty = fnref.Type as GamaFunction;
                 if (fnref.Parameters.Count == 0)
                     return true;
@@ -62,6 +66,7 @@ namespace Gama.Interop
 
             Remaining.RemoveAll((fnref) =>
             {
+                if (fnref.IsMethod) index++; // skip first for object reference
                 var ty = fnref.Type as GamaFunction;
                 if (fnref.Parameters.Count == 0)
                     return true;
@@ -108,8 +113,9 @@ namespace Gama.Interop
             if (ty.IsVarArg)
             {
                 if (argcount < fnrefparmscount) return (ArgResolveStatus.ErrorNotEnoughArgs, null);
-                var args = new GamaValueRef[argcount];
-                for (int i = 0; i < args.Length; i++)
+                var start = fnref.IsMethod ? 1 : 0; // clever hack to let compiler decide first argument
+                var args = new GamaValueRef[argcount + start];
+                for (int i = start; i < args.Length; i++)
                 {
                     if (i >= fnrefparmscount) // vararg
                     {
@@ -136,17 +142,17 @@ namespace Gama.Interop
             }
             else
             {
-                if (argcount != fnrefparmscount) return (ArgResolveStatus.ErrorArgCountMismatch, null);
-
+                var start = fnref.IsMethod ? 1 : 0;
+                if (argcount + start != fnrefparmscount) return (ArgResolveStatus.ErrorArgCountMismatch, null);
                 var args = new GamaValueRef[fnrefparmscount];
-                for (int i = 0; i < fnrefparmscount; i++)
+                for (int i = start; i < fnrefparmscount; i++)
                 {
                     var param = fnref.Parameters[i];
-                    if (FixedArgs.TryGetValue(i, out GamaValueRef fixedval))
+                    if (FixedArgs.TryGetValue(i - 1, out GamaValueRef fixedval))
                         args[i] = fixedval;
                     else
                     {
-                        var list = AmbiguousArgs[i];
+                        var list = AmbiguousArgs[i - start];
                         var fnty = param.Type as GamaFunction;
                         args[i] = list.FindFunction(fnty.ReturnType, fnty.ParameterTypes);
                     }

@@ -31,7 +31,10 @@ namespace Gama.Compiler.Units
                 fnlist = StructType.Meta.GetMethod(name);
 
             if (fnlist == null)
+            {
                 fnlist = new GamaFunctionList(name);
+                StructType.Meta.Methods.Add(fnlist);
+            }
 
             var retty = InstanceTypes.Void;
             var tyname = fndef.typeName();
@@ -78,9 +81,15 @@ namespace Gama.Compiler.Units
             var modty = new GamaFunction(retty, paramlist.Parameters.Select(p => p.Type).ToArray(), LLVMTypeRef.CreateFunction(retty.UnderlyingType, paramlist.Parameters.Select(p => p.Type.UnderlyingType).ToArray()));
             var modfn = Parent.GlobalContext.Module.AddFunction($"{ StructType.Name }.{ name }", modty.UnderlyingType);
 
-            var fn = new GamaFunctionRef(retty, paramlist, modty, modfn);
+            var fn = new GamaFunctionRef(retty, paramlist, modty, modfn, true);
+
+            /* Parameters are added to top frame of the target function, but they are not treated as conventional variables */
 
             var unit = new GamaFunctionCompiler(Parent.NamespaceContext, fn);
+            
+            foreach (var p in paramlist.Parameters)
+                unit.Top.AddValue(p.Name, new GamaValueRef(p.Type, modfn.GetParam(p.Index), false));
+
             unit.Visit(fndef.block());
             if (unit.Finish() == 0)
             {

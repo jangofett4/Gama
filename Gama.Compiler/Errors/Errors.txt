@@ -30,9 +30,13 @@ Context		ParserRuleContext
 0020 DuplicateMethod			"Method {0} is already defined for [formatter.2]"
 0021 NoViableOperator			"No valid operator found for operation: {0}"
 0022 AssignToNonModLValue		"Attempt to assign value to a non modifiable l-value: {0}"
+0023 UsingNamespaceNotFound     "Using namespace error: given namespace chain is not found: {0}"
+0024 FunctionIndexing           "Attempt to index a function: {0}"
+0025 MemberNotFound             "Expression cannot be solved: member not found for [type]: {0}"
 
 # Internal errors
 0500 InternalExpressionNull		"Compiler internal error: Expression is null: {0}"
+0501 InternalObjectRefMethodReq "Compiler internal error: Compiler did not provide refernce for method call: {0}"
 0599 InternalUnknownError		"Compiler internal error: Unknown fatal error: {0}"
 
 # 0600 ImportFileNotFound			"Imported file '{0}' is not found."

@@ -34,6 +34,12 @@ namespace Gama.Compiler.Units
             Imports = new List<GamaNamespace>();
         }
 
+        public void AddImport(GamaNamespace ns)
+        {
+            if (!Imports.Contains(ns))
+                Imports.Add(ns);
+        }
+
         /* So, you might want to optimize these later, because, like, this might slow down type searching (and compilation), soooo: TODO: */
         public GamaTypeRef FindTypeRefGlobal(GamaParser.FqtnContext fqtn)
         {
@@ -53,13 +59,7 @@ namespace Gama.Compiler.Units
                 if (found != null)
                     return found;
             }
-            foreach (var ns in Compiler.GlobalContext.Namespaces)
-            {
-                found = ns.FindTypeChain(names);
-                if (found != null)
-                    return found;
-            }
-            return null;
+            return Compiler.GlobalContext.GetTypeChain(names);
         }
 
         public GamaTypeRef FindTypeRefGlobal(GamaParser.TypeNameContext typename)
@@ -89,13 +89,7 @@ namespace Gama.Compiler.Units
                 if (found != null)
                     return found;
             }
-            foreach (var ns in Compiler.GlobalContext.Namespaces)
-            {
-                found = ns.FindFunctionChain(names);
-                if (found != null)
-                    return found;
-            }
-            return null;
+            return Compiler.GlobalContext.GetFunctionChain(names);
         }
 
         public GamaTypeRef FindTypeRef(string name) => This.FindType(name);
@@ -112,6 +106,19 @@ namespace Gama.Compiler.Units
         {
             GlobalContext = ctx;
             NamespaceContext = new GamaNamespaceContext(this, parent);
+        }
+
+        public override bool VisitTopLevelUsingNamespace([NotNull] GamaParser.TopLevelUsingNamespaceContext context)
+        {
+            var ns = GlobalContext.GetNamespaceChain(context.fqtn().Symbol().Select(s => s.GetText()).ToArray());
+            if (ns == null)
+            {
+                GlobalContext.AddError(new ErrorUsingNamespaceNotFound(context.fqtn()));
+                return false;
+            }
+
+            NamespaceContext.AddImport(ns);
+            return true;
         }
 
         public override bool VisitTopLevelDelegate([NotNull] GamaParser.TopLevelDelegateContext context)
@@ -217,7 +224,7 @@ namespace Gama.Compiler.Units
             var fnty = new GamaFunction(retty, argtypes, LLVMTypeRef.CreateFunction(retty.UnderlyingType, argtypesnative, ellipsis), ellipsis);
             var modfn = GlobalContext.Module.AddFunction(name, fnty.UnderlyingType);
 
-            var fnref = new GamaFunctionRef(retty, parmslist, fnty, modfn);
+            var fnref = new GamaFunctionRef(retty, parmslist, fnty, modfn, false);
             list.AddFunction(fnref);
 
             return true;
@@ -288,7 +295,7 @@ namespace Gama.Compiler.Units
                 var modty = new GamaFunction(retty, parmTypes, LLVMTypeRef.CreateFunction(retty.UnderlyingType, parmTypesNative));
                 var modfn = NamespaceContext.This.Context.Module.AddFunction(name, modty.UnderlyingType);
 
-                var fn = new GamaFunctionRef(retty, parms, modty, modfn);
+                var fn = new GamaFunctionRef(retty, parms, modty, modfn, false);
                 var unit = new GamaFunctionCompiler(NamespaceContext, fn);
 
                 /* Parameters are added to top frame of the target function, but they are not treated as conventional variables */
@@ -375,7 +382,7 @@ namespace Gama.Compiler.Units
                 var modty = new GamaFunction(retty, parms.Parameters.Select(p => p.Type).ToArray(), LLVMTypeRef.CreateFunction(retty.UnderlyingType, parms.Parameters.Select(p => p.Type.UnderlyingType).ToArray()));
                 var modfn = GlobalContext.Module.AddFunction(name, modty.UnderlyingType);
 
-                var fn = new GamaFunctionRef(retty, parms, modty, modfn);
+                var fn = new GamaFunctionRef(retty, parms, modty, modfn, false);
                 var unit = new GamaFunctionCompiler(NamespaceContext, fn);
                 unit.Visit(context.block());
                 if (unit.Finish() == 0)

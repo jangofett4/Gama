@@ -112,6 +112,13 @@ namespace Gama.Compiler.Units
                     return false;
                 }
 
+                if (resolved.IsMethod)  // Compiler forgot the provide object reference to method call, check FQMB expression if this happens
+                    if (ExpressionCompiler.Reference == null)
+                    {
+                        NamespaceContext.Context.AddError(new ErrorInternalObjectRefMethodReq(context));
+                        return false;
+                    }
+
                 if (resolved.HasAttribute("obsolete"))
                     Console.WriteLine("Function '{0}' is marked as obsolete, this method should be avoided", context.expr().GetText());
 
@@ -122,12 +129,30 @@ namespace Gama.Compiler.Units
                     return false;
                 }
 
+                if (resolved.IsMethod)
+                    args.Item2[0] = ExpressionCompiler.Reference;
+
                 var argsnative = args.Item2.Select(a => a.Value).ToArray();
+                var fnty = resolved.Type as GamaFunction;
 
                 /* LLVM */
                 var block = CurrentBlock;
                 var builder = Builder;
                 block.PositionBuilderAtEnd(builder);
+
+                if (fnty.IsVarArg)
+                {
+                    for (int i = resolved.Parameters.Count; i < argsnative.Length; i++)
+                    {
+                        var arg = argsnative[i];
+                        // C11 n1570 6.5.2.2.6; varargs promote floats to doubles
+                        if (args.Item2[i].Type == InstanceTypes.F32) // promotion needed
+                        {
+                            var trunc = builder.BuildFPExt(argsnative[i], InstanceTypes.F64.UnderlyingType);
+                            argsnative[i] = trunc;
+                        }
+                    }
+                }
                 builder.BuildCall(resolved.Value, argsnative);
             }
             else
@@ -138,11 +163,13 @@ namespace Gama.Compiler.Units
                     return false;
                 }
 
-                if (!(fn.Type is GamaFunction fnty))
+                
+                if (!(fn is GamaFunctionRef fnref))
                 {
                     NamespaceContext.Context.AddError(new ErrorNonFunctionCall(context.expr()));
                     return false;
                 }
+                var fnty = fn.Type as GamaFunction;
 
                 var argslist = context.exprList();
                 var argsnative = new LLVMValueRef[0];
@@ -177,10 +204,24 @@ namespace Gama.Compiler.Units
                     return false;
                 }
 
+                if (fnref.IsMethod)
+                {
+                    if (ExpressionCompiler.Reference == null)
+                    {
+                        NamespaceContext.Context.AddError(new ErrorInternalObjectRefMethodReq(context));
+                        return false;
+                    }
+                }
+                else
+                    argsnative[0] = ExpressionCompiler.Reference.Value;
+
                 /* LLVM */
                 var block = CurrentBlock;
                 var builder = Builder;
                 block.PositionBuilderAtEnd(builder);
+                builder.BuildCall(fn.Value, argsnative);
+
+                return true;
             }
 
             return true;
@@ -566,6 +607,9 @@ namespace Gama.Compiler.Units
             var lhs = VisitExpression(context.expr(0));
             ExpressionCompiler.PopLoad();
 
+            if (lhs == null)
+                return false;
+                
             if (!lhs.IsModifiableLValue)
             {
                 NamespaceContext.Context.AddError(new ErrorAssignToNonModLValue(context.expr(0)));
@@ -643,6 +687,12 @@ namespace Gama.Compiler.Units
             }
 
             Builder.Dispose();
+
+            // Run optimizations of self
+            // new Optimizers.AllocToEntry().Visit(this);
+            // new Optimizers.ControlFlowEliminator().Visit(this);
+            // new Optimizers.DeadBlockEliminator().Visit(this);
+
             return 0;
         }
     }

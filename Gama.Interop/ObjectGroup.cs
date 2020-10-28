@@ -9,6 +9,12 @@ namespace Gama.Interop
         public string Name { get; set; }
         public List<T> Items { get; set; }
         
+        public T this[int index]
+        {
+            get => Items[index];
+            set => Items[index] = value;
+        }
+
         public ObjectGroup(string name)
         {
             Name = name;

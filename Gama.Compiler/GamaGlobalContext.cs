@@ -58,12 +58,75 @@ namespace Gama.Compiler
             ErrorList.Add(error);
         }
 
+        public GamaFunctionList GetFunctionChain(params string[] names)
+        {
+            var ns = GetNamespace(names[0]);
+            if (ns == null)
+                return null;
+            for (int i = 1; i < names.Length; i++)
+            {
+                if (i != names.Length - 1)
+                    ns = ns.FindNamespace(names[i]);
+                else
+                {
+                    if (ns == null)
+                        return null;
+                    return ns.FindFunction(names[i]);
+                }
+            }
+
+            return null;
+        }
+
+        public GamaTypeRef GetTypeChain(params string[] names)
+        {
+            var ns = GetNamespace(names[0]);
+            if (ns == null)
+                return null;
+            for (int i = 1; i < names.Length; i++)
+            {
+                if (i != names.Length - 1)
+                    ns = ns.FindNamespace(names[i]);
+                else
+                {
+                    if (ns == null)
+                        return null;
+                    return ns.FindType(names[i]);
+                }
+            }
+
+            return null;
+        }
+
+        public GamaNamespace GetNamespaceChain(params string[] names)
+        {
+            var ns = GetNamespace(names[0]);
+            if (ns == null)
+                return null;
+            for (int i = 1; i < names.Length; i++)
+            {
+                ns = ns.FindNamespace(names[i]);
+                if (ns == null)
+                    return null;
+            }
+            
+            return ns;
+        }
+
         public GamaNamespace GetOrCreateNamespaceChain(params string[] names)
         {
             var ns = GetOrCreateNamespace(names[0]); // 0 is always there, so this shouldn't be a problem. If it's not, then there is a compiler bug
             for (int i = 1; i < names.Length; i++)
                 ns = ns.GetOrCreateNamespace(names[i]);
             return ns;
+        }
+        
+        public GamaNamespace GetNamespace(string name)
+        {
+            foreach (var n in Namespaces)
+                if (n.Name == name)
+                    return n;
+            return null; 
         }
 
         public GamaNamespace GetOrCreateNamespace(string name)

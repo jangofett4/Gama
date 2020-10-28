@@ -1,0 +1,10 @@
+namespace std {
+    extern printf(char*) ... : i32;
+    extern scanf(char*) ... : i32;
+
+    extern puts(char*);
+    extern putc(char);
+
+    extern malloc(i32) : char*;
+    extern free(char*);
+}
