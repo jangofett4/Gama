@@ -22,9 +22,11 @@ namespace Gama
 
         public static int Main(string[] args)
         {
+/*
 #if DEBUG
             args = new[] { "--files", "test.gm", "-o", "test.bc" };
 #endif
+*/
             return CommandLine.Parser.Default.ParseArguments<
                 GamaCompilerLoader.Compile,
                 GamaCompilerLoader.JIT

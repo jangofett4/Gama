@@ -81,6 +81,8 @@ namespace Gama.Compiler.Units
         public override GamaValueRef VisitExprLiteralString([NotNull] GamaParser.ExprLiteralStringContext context)
         {
             var str = context.StringLiteral().GetText().Trim('"');
+            // super ineffective string escape creator
+            str = str.Replace("\\n", "\n").Replace("\\t", "\t").Replace("\\r", "\r").Replace("\\a", "\a");
             int len = str.Length;
             var elems = new LLVMValueRef[len + 1];
             for (int i = 0; i < len; i++)

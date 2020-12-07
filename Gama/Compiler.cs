@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
 using System.Collections.Generic;
 
 using Gama.Compiler;
@@ -19,7 +20,7 @@ namespace Gama
         [Verb("compile", isDefault: true)]
         public class Compile
         {
-            [Option(HelpText = "Files to compile, wildcards are NOT valid", Required = true)]
+            [Value(0)]
             public IEnumerable<string> Files { get; set; }
             
             [Option('c', "compile", HelpText = "Compiles to linkable object file instead of Gama binary file", Default = false)]
@@ -31,8 +32,17 @@ namespace Gama
             [Option('o', "output", HelpText = "Output file name, does not work if -s flag is enabled", Required = true)]
             public string Output { get; set; }
 
+            [Option('l', "link", HelpText = "Automaticall compiles to native application using LLVM tools present in system", Required= false)]
+            public bool Link { get; set; }
+
             public static int Process(Compile args)
             {
+                if (args.Files.Count() == 0)
+                {
+                    Console.WriteLine("Error: No input files provided");
+                    return 1;
+                }
+
                 string file = args.Files.First();
                 if (!File.Exists(file))
                 {
@@ -45,7 +55,11 @@ namespace Gama
                 InstanceTypes.Initialize();
                 ctx.Root.Types.AddRange(InstanceTypes.All);
 
-                var input = new AntlrInputStream(File.ReadAllText(file));
+                var sw = new Stopwatch();
+                sw.Start();
+
+                var inputtxt = File.ReadAllText(file);
+                var input = new AntlrInputStream(inputtxt);
                 var lexer = new GamaLexer(input);
                 var tokens = new CommonTokenStream(lexer);
                 var parser = new GamaParser(tokens);
@@ -58,6 +72,8 @@ namespace Gama
                 var unit = new GamaNamespaceCompiler(ctx);
                 unit.Visit(program);
 
+                sw.Stop();
+                
                 if (!ctx.Module.TryVerify(LLVMVerifierFailureAction.LLVMPrintMessageAction, out string err))
                 {
                     ctx.Module.Dump();
@@ -74,7 +90,12 @@ namespace Gama
                     else
                     {
                         Console.WriteLine(ctx.Module.PrintToString());
+                        Console.WriteLine($"Compilation took { sw.Elapsed.Seconds } sec, { sw.Elapsed.Milliseconds } ms");
                         ctx.Module.WriteBitcodeToFile(args.Output);
+                        if (args.Link)
+                        {
+                            
+                        }
                     }
                 }
                 return 0;

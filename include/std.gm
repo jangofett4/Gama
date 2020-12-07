@@ -1,7 +1,11 @@
 namespace std {
     extern printf(char*) ... : i32;
     extern scanf(char*) ... : i32;
-
+    
+    println(str: char*) {
+    	printf("%s\n", str);
+    }
+    
     extern puts(char*);
     extern putc(char);
 

@@ -148,7 +148,7 @@ namespace Gama.Interop
                 for (int i = start; i < fnrefparmscount; i++)
                 {
                     var param = fnref.Parameters[i];
-                    if (FixedArgs.TryGetValue(i - 1, out GamaValueRef fixedval))
+                    if (FixedArgs.TryGetValue(i - start, out GamaValueRef fixedval))
                         args[i] = fixedval;
                     else
                     {
