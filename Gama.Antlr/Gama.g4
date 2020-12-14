@@ -97,6 +97,7 @@ expr
     | StringLiteral         #ExprLiteralString
 	| fqtn					#ExprFQTN
 	| expr LP exprList? RP  #ExprCall
+    | expr LQ exprList RQ   #ExprIndex
     | expr ('.' Symbol)+    #ExprFQMB
     | expr opMul expr       #ExprOpMul
     | expr opAdd expr       #ExprOpAdd

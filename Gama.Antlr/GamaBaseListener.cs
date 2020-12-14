@@ -385,6 +385,20 @@ public partial class GamaBaseListener : IGamaListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitExprLiteralString([NotNull] GamaParser.ExprLiteralStringContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>ExprIndex</c>
+	/// labeled alternative in <see cref="GamaParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterExprIndex([NotNull] GamaParser.ExprIndexContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ExprIndex</c>
+	/// labeled alternative in <see cref="GamaParser.expr"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitExprIndex([NotNull] GamaParser.ExprIndexContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>ExprOpAdd</c>
 	/// labeled alternative in <see cref="GamaParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>

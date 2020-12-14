@@ -70,7 +70,7 @@ namespace Gama.Compiler.Units
 
         public override GamaValueRef VisitExprLiteralFloating([NotNull] GamaParser.ExprLiteralFloatingContext context)
         {
-            return new GamaValueRef(InstanceTypes.F32, LLVMValueRef.CreateConstReal(InstanceTypes.F32.UnderlyingType, float.Parse(context.FloatingLiteral().GetText().Replace('.', ','))), false);
+            return new GamaValueRef(InstanceTypes.F32, LLVMValueRef.CreateConstReal(InstanceTypes.F32.UnderlyingType, float.Parse(context.FloatingLiteral().GetText())), false);
         }
 
         public override GamaValueRef VisitExprLiteralBoolean([NotNull] GamaParser.ExprLiteralBooleanContext context)
@@ -476,6 +476,79 @@ namespace Gama.Compiler.Units
                 var result = builder.BuildCall(fn.Value, argsnative);
 
                 return new GamaValueRef(fnty.ReturnType, result, false);
+            }
+        }
+
+        public override GamaValueRef VisitExprIndex([NotNull] GamaParser.ExprIndexContext context)
+        {
+            var val = Visit(context.expr());
+            if (val == null)
+                return null;
+            
+            var exprs = context.exprList().expr();
+
+            var builder = Parent.Builder;
+
+            if (!IsEmptyTT)
+            {
+                var tt = TopTT;
+                var vals = new GamaValueRef[exprs.Length];
+                var valsnative = new LLVMValueRef[exprs.Length];
+                var tys = new GamaTypeRef[exprs.Length];
+
+                for (int i = 0; i < vals.Length; i++)
+                {
+                    var tmp = Visit(exprs[i]);
+                    if (tmp == null)
+                        return null;
+                    vals[i] = tmp;
+                    valsnative[i] = tmp.Value;
+                    tys[i] = tmp.Type;
+                }
+                
+                var cbcomp = val.Type.Meta.CompiledOperators.Index.FindFunction(tt, tys);
+                if (cbcomp == null)
+                {
+                    var cb = val.Type.Meta.Operators.Index.FindFunction(tt, tys);
+                    if (cb == null)
+                    {
+                        Parent.NamespaceContext.Context.AddError(new ErrorNoViableOperator(context));
+                        return null;
+                    }
+                    Parent.CurrentBlock.PositionBuilderAtEnd(builder);
+                    return new GamaValueRef(cb.ReturnType, builder.BuildCall(cb.Value, valsnative), false); // TODO: make indexing assignable
+                }
+                return cbcomp.Call(builder, vals);
+            }
+            else
+            {
+                var vals = new GamaValueRef[exprs.Length];
+                var valsnative = new LLVMValueRef[exprs.Length];
+                var tys = new GamaTypeRef[exprs.Length];
+
+                for (int i = 0; i < vals.Length; i++)
+                {
+                    var tmp = Visit(exprs[i]);
+                    if (tmp == null)
+                        return null;
+                    vals[i] = tmp;
+                    valsnative[i] = tmp.Value;
+                    tys[i] = tmp.Type;
+                }
+                
+                var cbcomp = val.Type.Meta.CompiledOperators.Index.FindFunction(tys);
+                if (cbcomp == null)
+                {
+                    var cb = val.Type.Meta.Operators.Index.FindFunction(tys);
+                    if (cb == null)
+                    {
+                        Parent.NamespaceContext.Context.AddError(new ErrorNoViableOperator(context));
+                        return null;
+                    }
+                    Parent.CurrentBlock.PositionBuilderAtEnd(builder);
+                    return new GamaValueRef(cb.ReturnType, builder.BuildCall(cb.Value, valsnative), false); // TODO: make indexing assignable
+                }
+                return cbcomp.Call(builder, vals);
             }
         }
 

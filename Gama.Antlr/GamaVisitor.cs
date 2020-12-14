@@ -207,6 +207,13 @@ public interface IGamaVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitExprLiteralString([NotNull] GamaParser.ExprLiteralStringContext context);
 	/// <summary>
+	/// Visit a parse tree produced by the <c>ExprIndex</c>
+	/// labeled alternative in <see cref="GamaParser.expr"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitExprIndex([NotNull] GamaParser.ExprIndexContext context);
+	/// <summary>
 	/// Visit a parse tree produced by the <c>ExprOpAdd</c>
 	/// labeled alternative in <see cref="GamaParser.expr"/>.
 	/// </summary>

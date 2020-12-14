@@ -35,6 +35,9 @@ namespace Gama
             [Option('l', "link", HelpText = "Automaticall compiles to native application using LLVM tools present in system", Required= false)]
             public bool Link { get; set; }
 
+            [Option('j', "jit", HelpText = "Creates an LLVM execution engine and executes produced code in JIT, slow.", Required = false)]
+            public bool JIT { get; set; }
+
             public static int Process(Compile args)
             {
                 if (args.Files.Count() == 0)

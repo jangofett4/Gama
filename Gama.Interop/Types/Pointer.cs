@@ -1,8 +1,11 @@
-﻿using Gama.Interop;
-using LLVMSharp.Interop;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
+
+using LLVMSharp.Interop;
+
+using Gama.Types;
+using Gama.Interop;
 
 namespace Gama.Types
 {
@@ -18,6 +21,15 @@ namespace Gama.Types
         public GamaPointer(GamaTypeRef basetype) : base("[pointer]", LLVMTypeRef.CreatePointer(basetype.UnderlyingType, 0))
         {
             BaseType = basetype;
+        }
+
+        public override void Initialize()
+        {
+            /*
+            Meta.CompiledOperators.Index.AddFunction(new GamaCompiledFunctionRef(BaseType, new {  }, (builder, a) => {
+                
+            }));
+            */
         }
 
         public override bool Compatible(GamaTypeRef other)

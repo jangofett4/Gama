@@ -20,10 +20,12 @@ namespace std::math::spatial {
         z: f32
     }
 
+	/*
     impl vector3f {
     	add(r: i32) : i32 {
     		let test = *this;
     		return 0;
     	}
     }
+    */
 }

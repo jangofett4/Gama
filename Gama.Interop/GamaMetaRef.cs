@@ -33,25 +33,39 @@ namespace Gama.Interop
         public GamaFunctionRef GetConstructor(params GamaTypeRef[] paramtypes) => Constructors.FindFunction(paramtypes);
     }
 
+    /* Two different type of operator list class
+     * This is required in order to create standard type operators (such as int + int, double / int etc)
+     * Compiled operators execute a delegate, in which creates object code.
+     * Normal operators create a 'call' instruction instead
+     * This approach is performant and gives me ability to add more stuff later
+     */
+
     public class GamaOperatorList
     {
+        /* +, -, *, /, % */
         public GamaFunctionList Add { get; set; }
         public GamaFunctionList Sub { get; set; }
         public GamaFunctionList Mul { get; set; }
         public GamaFunctionList Div { get; set; }
         public GamaFunctionList Mod { get; set; }
 
+        /* &&, ||, ^ */
         public GamaFunctionList And { get; set; }
         public GamaFunctionList Or { get; set; }
         public GamaFunctionList Xor { get; set; }
 
+        /* ==, != */
         public GamaFunctionList Eq { get; set; }
         public GamaFunctionList Neq { get; set; }
 
+        /* >, >=, <, <= */
         public GamaFunctionList Gt { get; set; }
         public GamaFunctionList Ge { get; set; }
         public GamaFunctionList Lt { get; set; }
         public GamaFunctionList Le { get; set; }
+
+        /* [...] */
+        public GamaFunctionList Index { get; set; }
 
         // TODO: add casting operators
 
@@ -74,6 +88,8 @@ namespace Gama.Interop
             Ge = new GamaFunctionList(">=");
             Lt = new GamaFunctionList("<");
             Le = new GamaFunctionList("<=");
+
+            Index = new GamaFunctionList("[...]");
         }
     }
 
@@ -97,6 +113,8 @@ namespace Gama.Interop
         public GamaCompiledFunctionList Lt { get; set; }
         public GamaCompiledFunctionList Le { get; set; }
 
+        public GamaCompiledFunctionList Index { get; set; }
+
         public GamaOperatorListCompiled()
         {
             Add = new GamaCompiledFunctionList("+");
@@ -116,6 +134,8 @@ namespace Gama.Interop
             Ge = new GamaCompiledFunctionList(">=");
             Lt = new GamaCompiledFunctionList("<");
             Le = new GamaCompiledFunctionList("<=");
+
+            Index = new GamaCompiledFunctionList("[...]");
         }
     }
 }
